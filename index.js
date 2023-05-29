@@ -3,7 +3,7 @@ const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
-const jst = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -26,6 +26,13 @@ async function run() {
         const servicesCollection = client.db('geniusCar').collection('services');
         const ordersCollection = client.db('geniusCar').collection('oerders');
 
+        // creating jwt token 
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' });
+            res.send({ token });
+        });
+
         // services api:
         app.get('/services', async (req, res) => {
             const query = {} // to find all data or unspecific data
@@ -44,6 +51,9 @@ async function run() {
         // order api: 
 
         app.get('/orders', async (req, res) => {
+
+            console.log(req.headers.authorization);
+
             let query = {};
 
             // to find specific orders done by a specific email:
@@ -52,7 +62,6 @@ async function run() {
                     email: req.query.email
                 };
             };
-
             const cursor = ordersCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
