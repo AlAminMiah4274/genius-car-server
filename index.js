@@ -23,14 +23,14 @@ const client = new MongoClient(uri, {
 
 // to verify jwt token 
 function verifyJWT(req, res, next) {
-    const authHeader = req.header.authorization;
+    const authHeader = req.headers.authorization;
     if (!authHeader) {
-        res.status(401).send({ message: 'unauthorized access' });
-    }
+        return res.status(401).send({ message: 'unauthorized access' });
+    };
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
         if (err) {
-            res.status(401).send({ message: 'unauthorized access' });
+            return res.status(403).send({ message: 'forbidden access' });
         };
         req.decoded = decoded;
         next();
@@ -45,7 +45,7 @@ async function run() {
         // creating jwt token 
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' });
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
             res.send({ token });
         });
 
@@ -68,6 +68,11 @@ async function run() {
 
         app.get('/orders', verifyJWT, async (req, res) => {
 
+            const decoded = req.decoded;
+            if (decoded.email !== req.query.email) {
+                res.status(403).send({ message: 'unauthorized access' });
+            };
+
             let query = {};
 
             // to find specific orders done by a specific email:
@@ -88,7 +93,7 @@ async function run() {
         });
 
         // order status update: 
-        app.patch('/orders/:id', async (req, res) => {
+        app.patch('/orders/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const status = req.body.status;
@@ -101,7 +106,7 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/orders/:id', async (req, res) => {
+        app.delete('/orders/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await ordersCollection.deleteOne(query);
