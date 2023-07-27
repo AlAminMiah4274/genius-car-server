@@ -51,8 +51,30 @@ async function run() {
 
         // services api:
         app.get('/services', async (req, res) => {
-            const query = {} // to find all data or unspecific data
-            const cursor = servicesCollection.find(query);
+
+            const search = req.query.search;
+
+            const query = {};
+
+            // if (search.length) {
+            //     query = {
+            //         $text: {
+            //             $search: search
+            //         }
+            //     }
+            // };
+
+            // const query = { price: { $gt: 40, $lt: 250 } } // to find all data or unspecific data
+            // const query = { price: { $eq: 320 } };
+            // const query = { price: { $gte: 100 } }; 
+            // const query = { price: { $ne: 150 } };
+            // const query = { price: { $in: [20, 30, 320] } };
+            // const query = { price: { $nin: [20, 40, 200] } };
+            // const query = { $and: [{ price: { $gt: 20 } }, { price: { $gt: 100 } }] };
+            // const query = { price: { $not: { $gt: 150 } } };
+
+            const order = req.query.order === 'asc' ? 1 : -1;
+            const cursor = servicesCollection.find(query).sort({ price: order });
             const services = await cursor.toArray();
             res.send(services);
         });
